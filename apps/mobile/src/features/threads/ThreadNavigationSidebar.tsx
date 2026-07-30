@@ -32,6 +32,7 @@ import { useThreadListV2Enabled } from "./use-thread-list-v2-enabled";
 import { useThreadListV2ShelfPreferences } from "./use-thread-list-v2-shelf-preferences";
 import { environmentServerConfigsAtom } from "../../state/server";
 import { usePendingNewTasks } from "../../state/use-pending-new-tasks";
+import { useThreadVisits } from "../../state/thread-visits";
 import { useWorkspaceState } from "../../state/workspace";
 import { useSavedRemoteConnections } from "../../state/use-remote-environment-registry";
 import { useHardwareKeyboardCommand } from "../keyboard/hardwareKeyboardCommands";
@@ -142,6 +143,7 @@ function ThreadNavigationSidebarPane(
   const insets = useSafeAreaInsets();
   const projects = useProjects();
   const threads = useThreadShells();
+  const { lastVisitedAtByThreadKey } = useThreadVisits();
   const { environments: workspaceEnvironments, state: catalogState } = useWorkspaceState();
   const { savedConnectionsById } = useSavedRemoteConnections();
   const searchInputRef = useRef<TextInput>(null);
@@ -732,6 +734,7 @@ function ThreadNavigationSidebarPane(
       projectByKey,
       projectCwdByKey,
       projectTitleByProjectKey,
+      lastVisitedAtByThreadKey,
       savedConnectionsById,
       serverConfigs,
       snoozePresetMinute: nowMinute,
@@ -742,6 +745,7 @@ function ThreadNavigationSidebarPane(
       projectByKey,
       projectCwdByKey,
       projectTitleByProjectKey,
+      lastVisitedAtByThreadKey,
       savedConnectionsById,
       serverConfigs,
       nowMinute,
@@ -874,6 +878,9 @@ function ThreadNavigationSidebarPane(
                 }),
               )}
               searchQuery={props.searchQuery}
+              lastVisitedAt={
+                lastVisitedAtByThreadKey[scopedThreadKey(thread.environmentId, thread.id)] ?? null
+              }
               pane="sidebar"
               selected={
                 scopedThreadKey(thread.environmentId, thread.id) === props.selectedThreadKey
@@ -992,6 +999,9 @@ function ThreadNavigationSidebarPane(
                 projectCwdByKey.get(scopedProjectKey(thread.environmentId, thread.projectId)) ??
                 null
               }
+              lastVisitedAt={
+                lastVisitedAtByThreadKey[scopedThreadKey(thread.environmentId, thread.id)] ?? null
+              }
               isLast={item.isLast}
               searchMatch={threadSearchMatchByKey.get(
                 threadSearchMatchKey({
@@ -1037,6 +1047,7 @@ function ThreadNavigationSidebarPane(
       handleSwipeableWillOpen,
       machineByEnvironmentId,
       movePinnedThread,
+      lastVisitedAtByThreadKey,
       openPendingTask,
       pinReorderEnvironmentIds,
       pinThread,
