@@ -61,4 +61,53 @@ describe("resolveThreadStatus completion state", () => {
   it("does not mark existing history unread on first launch", () => {
     expect(resolveThreadStatus(makeCompletedThread())).toBeNull();
   });
+
+  it("keeps actionable and active states above Done", () => {
+    const completed = makeCompletedThread();
+    const lastVisitedAt = "2026-06-01T12:00:30.000Z";
+
+    expect(
+      resolveThreadStatus({ ...completed, hasPendingApprovals: true }, lastVisitedAt),
+    ).toMatchObject({ kind: "pending-approval" });
+    expect(
+      resolveThreadStatus({ ...completed, hasPendingUserInput: true }, lastVisitedAt),
+    ).toMatchObject({ kind: "awaiting-input" });
+    expect(
+      resolveThreadStatus(
+        {
+          ...completed,
+          session: {
+            threadId: completed.id,
+            status: "running",
+            providerName: "Codex",
+            providerInstanceId: completed.modelSelection.instanceId,
+            runtimeMode: "full-access",
+            activeTurnId: completed.latestTurn?.turnId ?? null,
+            lastError: null,
+            updatedAt: completed.updatedAt,
+          },
+        },
+        lastVisitedAt,
+      ),
+    ).toMatchObject({ kind: "working" });
+    expect(
+      resolveThreadStatus(
+        {
+          ...completed,
+          latestTurn: completed.latestTurn ? { ...completed.latestTurn, state: "error" } : null,
+        },
+        lastVisitedAt,
+      ),
+    ).toMatchObject({ kind: "error" });
+    expect(
+      resolveThreadStatus(
+        {
+          ...completed,
+          interactionMode: "plan",
+          hasActionableProposedPlan: true,
+        },
+        lastVisitedAt,
+      ),
+    ).toMatchObject({ kind: "plan-ready" });
+  });
 });

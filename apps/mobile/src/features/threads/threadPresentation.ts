@@ -134,8 +134,8 @@ export function resolveThreadStatus(
     return {
       kind: "done",
       label: "Done",
-      pillClassName: "bg-emerald-500/12 dark:bg-emerald-500/16",
-      textClassName: "text-emerald-700 dark:text-emerald-300",
+      pillClassName: "bg-adaptive-emerald-500-a12-a16",
+      textClassName: "text-adaptive-emerald-700-300",
       iconColor: "#30d158",
       iconBackground: "rgba(48,209,88,0.22)",
       pulse: false,
