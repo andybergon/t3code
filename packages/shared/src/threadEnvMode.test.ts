@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import { isDefaultThreadEnvModeSettled, resolveDefaultThreadEnvMode } from "./threadEnvMode.ts";
+import {
+  isDefaultThreadEnvModeSettled,
+  resolveDefaultThreadEnvMode,
+  resolveSendableThreadEnvMode,
+} from "./threadEnvMode.ts";
 
 describe("resolveDefaultThreadEnvMode", () => {
   it("prefers the project setting over t3.json over the global default", () => {
@@ -25,6 +29,20 @@ describe("resolveDefaultThreadEnvMode", () => {
         globalDefault: "worktree",
       }),
     ).toBe("worktree");
+  });
+});
+
+describe("resolveSendableThreadEnvMode", () => {
+  it("keeps the requested mode for repositories", () => {
+    expect(resolveSendableThreadEnvMode({ requestedMode: "worktree", isGitRepo: true })).toBe(
+      "worktree",
+    );
+  });
+
+  it("falls back to the current checkout for non-git projects", () => {
+    expect(resolveSendableThreadEnvMode({ requestedMode: "worktree", isGitRepo: false })).toBe(
+      "local",
+    );
   });
 });
 

@@ -1,6 +1,42 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import { resolveProjectThreadCreationBranch } from "./projectThreadCreationValidation";
+import {
+  isProjectThreadGitStatusSettled,
+  resolveProjectThreadCreationBranch,
+} from "./projectThreadCreationValidation";
+
+describe("isProjectThreadGitStatusSettled", () => {
+  it("waits only while a real workspace status query is loading", () => {
+    expect(
+      isProjectThreadGitStatusSettled({
+        hasWorkspaceRoot: true,
+        hasData: false,
+        hasError: false,
+      }),
+    ).toBe(false);
+    expect(
+      isProjectThreadGitStatusSettled({
+        hasWorkspaceRoot: false,
+        hasData: false,
+        hasError: false,
+      }),
+    ).toBe(true);
+    expect(
+      isProjectThreadGitStatusSettled({
+        hasWorkspaceRoot: true,
+        hasData: true,
+        hasError: false,
+      }),
+    ).toBe(true);
+    expect(
+      isProjectThreadGitStatusSettled({
+        hasWorkspaceRoot: true,
+        hasData: false,
+        hasError: true,
+      }),
+    ).toBe(true);
+  });
+});
 
 describe("resolveProjectThreadCreationBranch", () => {
   it("uses the live checkout for an untouched local draft label and recorded branch", () => {

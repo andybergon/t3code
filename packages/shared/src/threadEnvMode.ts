@@ -34,3 +34,11 @@ export function isDefaultThreadEnvModeSettled(sources: {
     !sources.projectFilePending
   );
 }
+
+/** Worktree mode is not sendable when the selected project is not a git repository. */
+export function resolveSendableThreadEnvMode(input: {
+  readonly requestedMode: ThreadEnvMode;
+  readonly isGitRepo: boolean;
+}): ThreadEnvMode {
+  return input.isGitRepo ? input.requestedMode : "local";
+}
