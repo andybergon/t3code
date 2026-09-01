@@ -64,7 +64,9 @@ import { buildModelOptions, groupByProvider } from "../../lib/modelOptions";
 import { useScaledTextRole } from "../settings/appearance/useScaledTextRole";
 import type { RemoteClientConnectionState } from "../../lib/connection";
 import { resolveProviderOptionDescriptors } from "../../lib/providerOptions";
+import type { QueuedThreadMessage } from "../../state/thread-outbox";
 import { ComposerCommandPopover } from "./ComposerCommandPopover";
+import { QueuedMessagesModal } from "./QueuedMessagesModal";
 import { useComposerCommandMenu } from "./use-composer-command-menu";
 import {
   ComposerDictationCancelAction,
@@ -115,6 +117,7 @@ export interface ThreadComposerProps {
   readonly selectedThread: OrchestrationThreadShell;
   readonly serverConfig: T3ServerConfig | null;
   readonly queueCount: number;
+  readonly queuedMessages: ReadonlyArray<QueuedThreadMessage>;
   readonly environmentId: EnvironmentId;
   readonly projectCwd: string | null;
   readonly editorRef?: RefObject<ComposerEditorHandle | null>;
@@ -128,6 +131,8 @@ export interface ThreadComposerProps {
   readonly onUpdateModelSelection: (modelSelection: ModelSelection) => void;
   readonly onUpdateRuntimeMode: (runtimeMode: RuntimeMode) => void;
   readonly onUpdateInteractionMode: (interactionMode: ProviderInteractionMode) => void;
+  readonly onUpdateQueuedMessage: (message: QueuedThreadMessage, text: string) => Promise<boolean>;
+  readonly onRemoveQueuedMessage: (message: QueuedThreadMessage) => Promise<boolean>;
   readonly onReconnectEnvironment: () => void;
   readonly onExpandedChange?: (expanded: boolean) => void;
   /** Fires on editor focus/blur; hosts use it to vet stale keyboard state. */
@@ -323,6 +328,7 @@ export const ThreadComposer = memo(function ThreadComposer(props: ThreadComposer
 
   const [previewFile, setPreviewFile] = useState<FilePreviewSource | null>(null);
   const [previewVideo, setPreviewVideo] = useState<VideoPreviewSource | null>(null);
+  const [queueVisible, setQueueVisible] = useState(false);
   const hasContent = props.draftMessage.trim().length > 0 || props.draftAttachments.length > 0;
   const showStopAction =
     !hasContent &&
@@ -830,16 +836,29 @@ export const ThreadComposer = memo(function ThreadComposer(props: ThreadComposer
         {/* Queue count */}
         {props.queueCount > 0 ? (
           <Animated.View entering={FadeIn.duration(180)} exiting={FadeOut.duration(120)}>
-            <Text className="pt-2 text-xs text-foreground-muted">
-              {props.queueCount} queued message{props.queueCount === 1 ? "" : "s"} will send
-              automatically.
-            </Text>
+            <Pressable
+              accessibilityHint="Inspect, edit, or cancel queued messages"
+              accessibilityRole="button"
+              className="mt-1.5 rounded-xl px-1 py-1.5 active:bg-subtle"
+              onPress={() => setQueueVisible(true)}
+            >
+              <Text className="text-xs font-t3-medium text-foreground-muted">
+                {props.queueCount} queued message{props.queueCount === 1 ? "" : "s"} · View queue
+              </Text>
+            </Pressable>
           </Animated.View>
         ) : null}
       </Animated.View>
 
       <VideoPreviewModal source={previewVideo} onRequestClose={closePreview} />
       <FilePreviewModal source={previewFile} onRequestClose={closePreview} />
+      <QueuedMessagesModal
+        visible={queueVisible}
+        messages={props.queuedMessages}
+        onClose={() => setQueueVisible(false)}
+        onUpdate={props.onUpdateQueuedMessage}
+        onRemove={props.onRemoveQueuedMessage}
+      />
     </Animated.View>
   );
 });

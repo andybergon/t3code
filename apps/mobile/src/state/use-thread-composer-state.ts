@@ -34,6 +34,7 @@ import type { DraftComposerImageAttachment } from "../lib/composerImages";
 import { scopedThreadKey } from "../lib/scopedEntities";
 import { copyTextWithHaptic } from "../lib/copyTextWithHaptic";
 import { buildThreadFeed } from "../lib/threadActivity";
+import { queuedMessageWithEditedText } from "../features/threads/queued-message-editor";
 import { appAtomRegistry } from "../state/atom-registry";
 import {
   appendComposerDraftAttachments,
@@ -52,7 +53,13 @@ import {
 import { setPendingConnectionError } from "../state/use-remote-environment-registry";
 import { useSelectedThreadDetail } from "../state/use-thread-detail";
 import { useThreadSelection } from "../state/use-thread-selection";
-import { enqueueThreadOutboxMessage } from "./thread-outbox";
+import {
+  enqueueThreadOutboxMessage,
+  threadOutboxRevision,
+  updateThreadOutboxMessage,
+  type QueuedThreadMessage,
+} from "./thread-outbox";
+import { removeThreadOutboxMessage } from "./thread-outbox-removal";
 import { useThreadOutboxMessages } from "./use-thread-outbox";
 import { threadEnvironment } from "./threads";
 import { useAtomCommand } from "./use-atom-command";
@@ -480,9 +487,25 @@ export function useThreadComposerState() {
     [selectedThreadKey],
   );
 
+  const onUpdateQueuedMessage = useCallback(
+    (message: QueuedThreadMessage, text: string) =>
+      updateThreadOutboxMessage(
+        queuedMessageWithEditedText(message, text),
+        threadOutboxRevision(message.messageId),
+      ),
+    [],
+  );
+
+  const onRemoveQueuedMessage = useCallback(
+    (message: QueuedThreadMessage) =>
+      removeThreadOutboxMessage(message, threadOutboxRevision(message.messageId)),
+    [],
+  );
+
   return {
     selectedThreadFeed,
     selectedThreadQueueCount,
+    selectedThreadQueuedMessages,
     activeWorkStartedAt,
     draftMessage,
     draftAttachments,
@@ -499,5 +522,7 @@ export function useThreadComposerState() {
     onUpdateModelSelection,
     onUpdateRuntimeMode,
     onUpdateInteractionMode,
+    onUpdateQueuedMessage,
+    onRemoveQueuedMessage,
   };
 }

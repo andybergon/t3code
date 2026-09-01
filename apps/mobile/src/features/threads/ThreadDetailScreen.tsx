@@ -90,6 +90,7 @@ import {
 import { ThreadFeed } from "./ThreadFeed";
 import type { ThreadContentPresentation } from "./threadContentPresentation";
 import { resolveThreadFeedSubmissionAnchor } from "./thread-feed-live-follow";
+import type { QueuedThreadMessage } from "../../state/thread-outbox";
 
 export interface ThreadDetailScreenProps {
   readonly selectedThread: OrchestrationThreadShell;
@@ -116,6 +117,7 @@ export interface ThreadDetailScreenProps {
   readonly projectWorkspaceRoot: string | null;
   readonly threadCwd: string | null;
   readonly selectedThreadQueueCount: number;
+  readonly selectedThreadQueuedMessages: ReadonlyArray<QueuedThreadMessage>;
   readonly serverConfig: T3ServerConfig | null;
   readonly layoutVariant?: LayoutVariant;
   readonly usesAutomaticContentInsets?: boolean;
@@ -132,6 +134,8 @@ export interface ThreadDetailScreenProps {
   readonly onUpdateThreadModelSelection: (modelSelection: ModelSelection) => void;
   readonly onUpdateThreadRuntimeMode: (runtimeMode: RuntimeMode) => void;
   readonly onUpdateThreadInteractionMode: (interactionMode: ProviderInteractionMode) => void;
+  readonly onUpdateQueuedMessage: (message: QueuedThreadMessage, text: string) => Promise<boolean>;
+  readonly onRemoveQueuedMessage: (message: QueuedThreadMessage) => Promise<boolean>;
   readonly onRespondToApproval: (
     requestId: ApprovalRequestId,
     decision: ProviderApprovalDecision,
@@ -811,6 +815,7 @@ export const ThreadDetailScreen = memo(function ThreadDetailScreen(props: Thread
                   selectedThread={props.selectedThread}
                   serverConfig={props.serverConfig}
                   queueCount={props.selectedThreadQueueCount}
+                  queuedMessages={props.selectedThreadQueuedMessages}
                   environmentId={props.environmentId}
                   projectCwd={props.threadCwd ?? props.projectWorkspaceRoot}
                   bottomInset={composerBottomInset}
@@ -825,6 +830,8 @@ export const ThreadDetailScreen = memo(function ThreadDetailScreen(props: Thread
                   onUpdateModelSelection={props.onUpdateThreadModelSelection}
                   onUpdateRuntimeMode={props.onUpdateThreadRuntimeMode}
                   onUpdateInteractionMode={props.onUpdateThreadInteractionMode}
+                  onUpdateQueuedMessage={props.onUpdateQueuedMessage}
+                  onRemoveQueuedMessage={props.onRemoveQueuedMessage}
                   onExpandedChange={setComposerExpanded}
                   onEditorFocusChange={handleComposerFocusChange}
                 />
