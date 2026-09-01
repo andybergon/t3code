@@ -63,6 +63,7 @@ import {
   Suspense,
   useCallback,
   useEffect,
+  useEffectEvent,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -91,6 +92,7 @@ import {
   collapseExpandedComposerCursor,
   type ComposerSubmissionIntent,
   parseStandaloneComposerSlashCommand,
+  runningTurnSubmissionAction,
 } from "../composer-logic";
 import {
   derivePendingApprovals,
@@ -188,6 +190,7 @@ import {
   CheckCircle2Icon,
   ChevronDownIcon,
   GitBranchIcon,
+  ListPlusIcon,
   Minimize2Icon,
   PaperclipIcon,
   WifiOffIcon,
@@ -1764,6 +1767,24 @@ function ChatViewContent(props: ChatViewProps) {
   );
   const activeThreadKey = activeThreadRef ? scopedThreadKey(activeThreadRef) : null;
   const activeThreadShell = useThreadShell(isServerThread ? activeThreadRef : null);
+  const [queuedNextTurnKeys, setQueuedNextTurnKeys] = useState<ReadonlySet<string>>(new Set());
+  const hasQueuedNextTurn = activeThreadKey !== null && queuedNextTurnKeys.has(activeThreadKey);
+  const setActiveThreadQueued = useCallback(
+    (queued: boolean) => {
+      if (activeThreadKey === null) return;
+      setQueuedNextTurnKeys((current) => {
+        const next = new Set(current);
+        if (queued) {
+          next.add(activeThreadKey);
+        } else {
+          next.delete(activeThreadKey);
+        }
+        return next;
+      });
+    },
+    [activeThreadKey],
+  );
+  const steerQueuedTurnRef = useRef<() => void>(() => undefined);
   const changeRequestSnapshotByKey = useAtomValue(threadChangeRequestSnapshotsAtom);
   const [timelineAnchor, setTimelineAnchor] = useState<{
     readonly threadKey: string | null;
@@ -5316,6 +5337,29 @@ function ChatViewContent(props: ChatViewProps) {
     }
     void handleSwitchCheckoutToThread();
   }, [gitStatusQuery.data?.hasWorkingTreeChanges, handleSwitchCheckoutToThread]);
+  const queuedNextTurnBannerItem = useMemo<ComposerBannerStackItem | null>(
+    () =>
+      hasQueuedNextTurn
+        ? {
+            id: `queued-next-turn:${activeThreadKey ?? "unknown"}`,
+            variant: "info",
+            icon: <ListPlusIcon />,
+            title: "Next message queued",
+            description: "Keep editing the draft. It will send when the current turn finishes.",
+            actions: (
+              <div className="flex items-center gap-1">
+                <Button size="xs" variant="ghost" onClick={() => setActiveThreadQueued(false)}>
+                  Cancel queue
+                </Button>
+                <Button size="xs" variant="outline" onClick={() => steerQueuedTurnRef.current()}>
+                  Steer now
+                </Button>
+              </div>
+            ),
+          }
+        : null,
+    [activeThreadKey, hasQueuedNextTurn, setActiveThreadQueued],
+  );
   const composerBannerItems = useMemo<ComposerBannerStackItem[]>(() => {
     const backgroundLivenessItems =
       backgroundLivenessBannerItem === null ? [] : [backgroundLivenessBannerItem];
@@ -5323,6 +5367,7 @@ function ChatViewContent(props: ChatViewProps) {
       resumeCompactionBannerItem === null ? [] : [resumeCompactionBannerItem];
     const wokeThreadItems = wokeThreadBannerItem === null ? [] : [wokeThreadBannerItem];
     const parkedThreadItems = parkedThreadBannerItem === null ? [] : [parkedThreadBannerItem];
+    const queuedNextTurnItems = queuedNextTurnBannerItem === null ? [] : [queuedNextTurnBannerItem];
     if (!localCheckoutBranchMismatch || !showBranchMismatchBanner || !activeBranchMismatchKey) {
       return [
         ...systemComposerBannerItems,
@@ -5330,6 +5375,7 @@ function ChatViewContent(props: ChatViewProps) {
         ...resumeCompactionItems,
         ...wokeThreadItems,
         ...parkedThreadItems,
+        ...queuedNextTurnItems,
       ];
     }
     return [
@@ -5337,6 +5383,7 @@ function ChatViewContent(props: ChatViewProps) {
       ...backgroundLivenessItems,
       ...resumeCompactionItems,
       ...wokeThreadItems,
+      ...queuedNextTurnItems,
       {
         id: `branch-mismatch:${activeBranchMismatchKey}`,
         variant: "info",
@@ -5384,6 +5431,7 @@ function ChatViewContent(props: ChatViewProps) {
     isRestoringThreadBranch,
     localCheckoutBranchMismatch,
     parkedThreadBannerItem,
+    queuedNextTurnBannerItem,
     resumeCompactionBannerItem,
     showBranchMismatchBanner,
     systemComposerBannerItems,
@@ -5866,6 +5914,27 @@ function ChatViewContent(props: ChatViewProps) {
         composerPreviewAnnotations.length +
         composerReviewComments.length,
     });
+    if (
+      hasSendableContent &&
+      runningTurnSubmissionAction({
+        isRunning: phase === "running",
+        intent: submissionIntent,
+      }) === "queue"
+    ) {
+      const wasAlreadyQueued = hasQueuedNextTurn;
+      setActiveThreadQueued(true);
+      toastManager.add(
+        stackedThreadToast({
+          type: "info",
+          title: wasAlreadyQueued ? "Queued message updated" : "Message queued for next turn",
+          description: "The editable draft will send when the current turn finishes.",
+        }),
+      );
+      return;
+    }
+    if (submissionIntent === "steer") {
+      setActiveThreadQueued(false);
+    }
     const feedbackCommand =
       ctxSelectedProvider === "codex" &&
       composerImages.length === 0 &&
@@ -6521,6 +6590,39 @@ function ChatViewContent(props: ChatViewProps) {
       resetLocalDispatch();
     }
   };
+
+  steerQueuedTurnRef.current = () => {
+    setActiveThreadQueued(false);
+    void onSend(undefined, "steer");
+  };
+
+  const sendQueuedNextTurn = useEffectEvent(() => {
+    setActiveThreadQueued(false);
+    void onSend(undefined, "foreground");
+  });
+  useEffect(() => {
+    if (
+      !hasQueuedNextTurn ||
+      phase === "running" ||
+      phase === "connecting" ||
+      isSendBusy ||
+      isConnecting ||
+      threadDetailLoading ||
+      activeEnvironmentUnavailable ||
+      activePendingProgress !== null
+    ) {
+      return;
+    }
+    sendQueuedNextTurn();
+  }, [
+    activeEnvironmentUnavailable,
+    activePendingProgress,
+    hasQueuedNextTurn,
+    isConnecting,
+    isSendBusy,
+    phase,
+    threadDetailLoading,
+  ]);
 
   const onInterrupt = async () => {
     if (!activeThread) return;

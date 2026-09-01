@@ -33,6 +33,7 @@ interface ComposerPrimaryActionsProps {
   showSendWhileRunning?: boolean;
   onPreviousPendingQuestion: () => void;
   onInterrupt: () => void;
+  onSteer?: () => void;
   onImplementPlanInNewThread: () => void;
 }
 
@@ -57,6 +58,7 @@ export const formatPendingPrimaryActionLabel = (input: {
 const preventPointerFocus: PointerEventHandler<HTMLElement> = (event) => {
   event.preventDefault();
 };
+const noop = () => undefined;
 
 export const ComposerPrimaryActions = memo(function ComposerPrimaryActions({
   compact,
@@ -74,6 +76,7 @@ export const ComposerPrimaryActions = memo(function ComposerPrimaryActions({
   showSendWhileRunning = false,
   onPreviousPendingQuestion,
   onInterrupt,
+  onSteer = noop,
   onImplementPlanInNewThread,
 }: ComposerPrimaryActionsProps) {
   const pointerFocusProps = preserveComposerFocusOnPointerDown
@@ -246,7 +249,9 @@ export const ComposerPrimaryActions = memo(function ComposerPrimaryActions({
                 ? "Preparing worktree"
                 : isSendBusy
                   ? "Sending"
-                  : "Send message"
+                  : isRunning
+                    ? "Queue message for next turn"
+                    : "Send message"
       }
     >
       {stageBackdropVariant ? (
@@ -278,6 +283,27 @@ export const ComposerPrimaryActions = memo(function ComposerPrimaryActions({
     <>
       {renderStopGenerationButton(false)}
       {showSendWhileRunning && hasSendableContent ? sendButton : null}
+      {showSendWhileRunning && hasSendableContent ? (
+        <Menu>
+          <MenuTrigger
+            render={
+              <Button
+                type="button"
+                size="icon-sm"
+                variant="ghost"
+                className="rounded-full"
+                aria-label="Running turn message actions"
+                {...pointerFocusProps}
+              />
+            }
+          >
+            <ChevronDownIcon className="size-3.5" />
+          </MenuTrigger>
+          <MenuPopup align="end" side="top">
+            <MenuItem onClick={onSteer}>Steer current turn</MenuItem>
+          </MenuPopup>
+        </Menu>
+      ) : null}
     </>
   );
 });

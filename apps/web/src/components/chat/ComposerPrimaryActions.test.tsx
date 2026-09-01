@@ -222,11 +222,12 @@ describe("ComposerPrimaryActions", () => {
     expect(markup).not.toContain('aria-label="Send message"');
   });
 
-  it("renders send alongside stop while running when Enter-to-send is unavailable", () => {
+  it("renders queue and deliberate steering actions alongside stop while running", () => {
     const markup = renderRunningActions(true, true);
 
     expect(markup).toContain('aria-label="Stop generation"');
-    expect(markup).toContain('aria-label="Send message"');
+    expect(markup).toContain('aria-label="Queue message for next turn"');
+    expect(markup).toContain('aria-label="Running turn message actions"');
     expect(markup).toContain('type="submit"');
   });
 
@@ -234,6 +235,6 @@ describe("ComposerPrimaryActions", () => {
     const markup = renderRunningActions(true, false);
 
     expect(markup).toContain('aria-label="Stop generation"');
-    expect(markup).not.toContain('aria-label="Send message"');
+    expect(markup).not.toContain('aria-label="Queue message for next turn"');
   });
 });

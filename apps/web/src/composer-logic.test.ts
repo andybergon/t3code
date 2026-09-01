@@ -15,6 +15,7 @@ import {
   formatAssistantCitationForComposer,
   isCollapsedCursorAdjacentToInlineToken,
   parseStandaloneComposerSlashCommand,
+  runningTurnSubmissionAction,
   replaceTextRange,
 } from "./composer-logic";
 import { INLINE_TERMINAL_CONTEXT_PLACEHOLDER } from "./lib/terminalContext";
@@ -106,6 +107,18 @@ describe("composerSubmissionIntentForEnter", () => {
         isDraftThread: false,
       }),
     ).toBe("foreground");
+  });
+});
+
+describe("runningTurnSubmissionAction", () => {
+  it("queues ordinary submissions while a turn is running", () => {
+    expect(runningTurnSubmissionAction({ isRunning: true, intent: "foreground" })).toBe("queue");
+    expect(runningTurnSubmissionAction({ isRunning: true, intent: "background" })).toBe("queue");
+  });
+
+  it("only steers a running turn through the explicit steer intent", () => {
+    expect(runningTurnSubmissionAction({ isRunning: true, intent: "steer" })).toBe("send");
+    expect(runningTurnSubmissionAction({ isRunning: false, intent: "foreground" })).toBe("send");
   });
 });
 
