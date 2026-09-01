@@ -8,6 +8,17 @@ On mobile, an empty composer shows an interrupt button while the agent is workin
 or an attachment replaces it with the send button. This applies to both compact and expanded
 composers.
 
+## Queued messages
+
+On web and desktop, pressing `Enter` while an agent is working queues the draft for the next turn.
+The draft stays visible and editable until the current turn finishes. Use **Steer now** in the
+running-turn action menu or the queued-message notice only when you want to change the active turn.
+Use **Cancel queue** to keep the draft without sending it automatically.
+
+On mobile, queued messages appear below the composer. Tap **View queue** to inspect their full text,
+edit a message before delivery, or cancel it. A message being edited is held until you save or
+discard the edit, so the agent cannot receive stale text.
+
 You can attach images up to 10 MB. On servers that support file uploads, you can also
 attach videos, text files, PDFs, ZIP archives, and other files. Each file can be up to the limit advertised
 by the server, capped at 50 MB. Each message can contain up to eight attachments in total. Files
@@ -218,3 +229,15 @@ On desktop, press `Cmd+Enter` on macOS or `Ctrl+Enter` on Windows and Linux from
 start it in the background. T3 Code opens another new thread and shows an **Open** action for the
 thread that started. The new thread keeps the selected workspace mode and base branch. If **New
 worktree** is selected, each background thread creates its own worktree.
+Projects without a Git repository always start in **Current checkout**. T3 Code hides branch and
+worktree controls for those projects, so they can start without selecting a branch.
+
+## Chat output
+
+Completed `mermaid` and `mmd` code fences render as diagrams on web and desktop. Use the source
+toggle on a diagram to inspect or copy its Mermaid text. A diagram that cannot be parsed falls back
+to its source instead of hiding the response.
+
+File links in assistant messages open in T3 Code's file panel. Files outside the project are shown
+read-only in the panel; images and browser-preview documents use an exact signed link that does not
+grant access to neighboring files.

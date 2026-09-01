@@ -34,6 +34,10 @@ by older clients on one device no longer control this behavior.
 When you un-settle a thread, it returns to the top of the active list so you can find it right
 away. Its timestamps do not change. Other threads keep their positions.
 
+On mobile, a thread that finishes while you are viewing another screen shows **Done** until you
+open it. Approval requests, questions, active work, errors, and plan-ready states take priority over
+this completion marker, so the row continues to show the action that needs attention.
+
 Right-click a pull request link in a thread and choose **Link to thread** to show that pull request
 in the sidebar. The thread settles when the linked pull request merges if **Auto-settle merged
 threads** is enabled. Right-click the same link and choose **Unlink from thread** to remove it.
