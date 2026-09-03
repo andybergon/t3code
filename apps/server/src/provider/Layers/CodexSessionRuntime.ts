@@ -600,6 +600,7 @@ export function buildTurnStartParams(input: {
   readonly model?: string;
   readonly serviceTier?: CodexServiceTier;
   readonly effort?: EffectCodexSchema.V2TurnStartParams__ReasoningEffort;
+  readonly defaultEffort?: EffectCodexSchema.V2TurnStartParams__ReasoningEffort;
   readonly interactionMode?: ProviderInteractionMode;
   /** Defaults to true so callers that predate the agent-access gate are unchanged. */
   readonly browserToolsAvailable?: boolean;
@@ -619,10 +620,11 @@ export function buildTurnStartParams(input: {
   }
 
   const config = runtimeModeToThreadConfig(input.runtimeMode);
+  const effectiveEffort = input.effort ?? input.defaultEffort;
   const collaborationMode = buildCodexCollaborationMode({
     ...(input.interactionMode ? { interactionMode: input.interactionMode } : {}),
     ...(input.model ? { model: input.model } : {}),
-    ...(input.effort ? { effort: input.effort } : {}),
+    ...(effectiveEffort ? { effort: effectiveEffort } : {}),
     browserToolsAvailable: input.browserToolsAvailable ?? true,
   });
 
@@ -634,7 +636,7 @@ export function buildTurnStartParams(input: {
     sandboxPolicy: runtimeModeToTurnSandboxPolicy(input.runtimeMode),
     ...(input.model ? { model: input.model } : {}),
     ...(input.serviceTier ? { serviceTier: input.serviceTier } : {}),
-    ...(input.effort ? { effort: input.effort } : {}),
+    ...(effectiveEffort ? { effort: effectiveEffort } : {}),
     ...(collaborationMode ? { collaborationMode } : {}),
   }).pipe(
     Effect.mapError((cause) =>
@@ -1241,6 +1243,7 @@ export const makeCodexSessionRuntime = (
       updatedAt: sessionCreatedAt,
     } satisfies ProviderSession;
     const sessionRef = yield* Ref.make<ProviderSession>(initialSession);
+    const defaultReasoningEffortRef = yield* Ref.make<string | undefined>(undefined);
     const offerEvent = (event: ProviderEvent) => Queue.offer(events, event).pipe(Effect.asVoid);
 
     const emitEvent = (event: Omit<ProviderEvent, "id" | "provider" | "createdAt">) =>
@@ -2255,6 +2258,7 @@ export const makeCodexSessionRuntime = (
         updatedAt: yield* nowIso,
       } satisfies ProviderSession;
       yield* Ref.set(sessionRef, session);
+      yield* Ref.set(defaultReasoningEffortRef, opened.reasoningEffort ?? undefined);
       yield* emitSessionEvent("session/ready", "Codex App Server session ready.");
       return session;
     });
@@ -2308,6 +2312,7 @@ export const makeCodexSessionRuntime = (
           const normalizedModel = normalizeCodexModelSlug(
             input.model ?? (yield* Ref.get(sessionRef)).model,
           );
+          const defaultEffort = yield* Ref.get(defaultReasoningEffortRef);
           const params = yield* buildTurnStartParams({
             threadId: providerThreadId,
             runtimeMode: options.runtimeMode,
@@ -2316,6 +2321,7 @@ export const makeCodexSessionRuntime = (
             ...(normalizedModel ? { model: normalizedModel } : {}),
             ...(input.serviceTier ? { serviceTier: input.serviceTier } : {}),
             ...(input.effort ? { effort: input.effort } : {}),
+            ...(defaultEffort ? { defaultEffort } : {}),
             ...(input.interactionMode ? { interactionMode: input.interactionMode } : {}),
             // Derived from the session's own MCP configuration rather than the
             // setting, so the prompt describes the tools this turn actually

@@ -114,9 +114,15 @@ function codexAccountEmail(account: CodexSchema.V2GetAccountResponse["account"])
 
 export function mapCodexModelCapabilities(
   model: CodexSchema.V2ModelListResponse__Model,
+  configuredReasoningEffort?: string,
 ): ModelCapabilities {
+  const effectiveReasoningEffort = model.supportedReasoningEfforts.some(
+    ({ reasoningEffort }) => reasoningEffort === configuredReasoningEffort,
+  )
+    ? configuredReasoningEffort
+    : model.defaultReasoningEffort;
   const reasoningOptions = model.supportedReasoningEfforts.map(({ reasoningEffort }) =>
-    reasoningEffort === model.defaultReasoningEffort
+    reasoningEffort === effectiveReasoningEffort
       ? {
           id: reasoningEffort,
           label: reasoningEffortLabel(reasoningEffort),
@@ -189,13 +195,14 @@ const toDisplayName = (model: CodexSchema.V2ModelListResponse__Model): string =>
 
 function parseCodexModelListResponse(
   response: CodexSchema.V2ModelListResponse,
+  configuredReasoningEffort?: string,
 ): ReadonlyArray<ServerProviderModel> {
   return response.data.map((model) => ({
     slug: model.model,
     name: toDisplayName(model),
     isCustom: false,
     ...(model.isDefault ? { isDefault: true } : {}),
-    capabilities: mapCodexModelCapabilities(model),
+    capabilities: mapCodexModelCapabilities(model, configuredReasoningEffort),
   }));
 }
 
@@ -289,6 +296,7 @@ function parseCodexSkillsListResponse(
 
 const requestAllCodexModels = Effect.fn("requestAllCodexModels")(function* (
   client: CodexClient.CodexAppServerClient["Service"],
+  configuredReasoningEffort?: string,
 ) {
   const models: ServerProviderModel[] = [];
   let cursor: string | null | undefined = undefined;
@@ -298,7 +306,7 @@ const requestAllCodexModels = Effect.fn("requestAllCodexModels")(function* (
       "model/list",
       cursor ? { cursor } : {},
     );
-    models.push(...parseCodexModelListResponse(response));
+    models.push(...parseCodexModelListResponse(response, configuredReasoningEffort));
     cursor = response.nextCursor;
   } while (cursor);
 
@@ -394,12 +402,17 @@ const probeCodexAppServerProvider = Effect.fn("probeCodexAppServerProvider")(fun
     } satisfies CodexAppServerProviderSnapshot;
   }
 
+  const configuredReasoningEffort = yield* client.request("config/read", { cwd: input.cwd }).pipe(
+    Effect.map((response) => response.config.model_reasoning_effort ?? undefined),
+    Effect.orElseSucceed(() => undefined),
+  );
+
   const [skillsResponse, models] = yield* Effect.all(
     [
       client.request("skills/list", {
         cwds: [input.cwd],
       }),
-      requestAllCodexModels(client),
+      requestAllCodexModels(client, configuredReasoningEffort),
     ],
     { concurrency: "unbounded" },
   );

@@ -199,6 +199,41 @@ describe("buildTurnStartParams", () => {
     NodeAssert.ok(settings?.developer_instructions?.includes(`as ${DEFAULT_MODEL} with medium`));
   });
 
+  it("uses the opened thread's configured effort when the turn has no override", () => {
+    const params = Effect.runSync(
+      buildTurnStartParams({
+        threadId: "provider-thread-1",
+        runtimeMode: "full-access",
+        prompt: "Go",
+        model: "gpt-5.6-sol",
+        defaultEffort: "high",
+        interactionMode: "default",
+      }),
+    );
+
+    const settings = params.collaborationMode?.settings;
+    NodeAssert.equal(params.effort, "high");
+    NodeAssert.equal(settings?.reasoning_effort, "high");
+    NodeAssert.ok(settings?.developer_instructions?.includes("as gpt-5.6-sol with high"));
+  });
+
+  it("prefers an explicit turn effort over the opened thread's configured effort", () => {
+    const params = Effect.runSync(
+      buildTurnStartParams({
+        threadId: "provider-thread-1",
+        runtimeMode: "full-access",
+        prompt: "Go",
+        model: "gpt-5.6-sol",
+        effort: "low",
+        defaultEffort: "high",
+        interactionMode: "default",
+      }),
+    );
+
+    NodeAssert.equal(params.effort, "low");
+    NodeAssert.equal(params.collaborationMode?.settings.reasoning_effort, "low");
+  });
+
   it.effect("routes approvals to the auto reviewer in auto mode", () =>
     Effect.gen(function* () {
       const params = yield* buildTurnStartParams({

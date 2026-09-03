@@ -103,6 +103,62 @@ it("uses standard routing when the catalog has no default service tier", () => {
   ]);
 });
 
+it("uses the configured reasoning effort as the visible default when the model supports it", () => {
+  const capabilities = mapCodexModelCapabilities(
+    {
+      additionalSpeedTiers: [],
+      defaultReasoningEffort: "low",
+      defaultServiceTier: null,
+      description: "Test model",
+      displayName: "GPT Test",
+      hidden: false,
+      id: "gpt-test",
+      isDefault: true,
+      model: "gpt-test",
+      serviceTiers: [],
+      supportedReasoningEfforts: [
+        { description: "Fast", reasoningEffort: "low" },
+        { description: "Thorough", reasoningEffort: "high" },
+      ],
+    },
+    "high",
+  );
+
+  assert.deepStrictEqual(capabilities.optionDescriptors, [
+    {
+      id: "reasoningEffort",
+      label: "Reasoning",
+      type: "select",
+      options: [
+        { id: "low", label: "Low" },
+        { id: "high", label: "High", isDefault: true },
+      ],
+      currentValue: "high",
+    },
+  ]);
+});
+
+it("keeps the catalog reasoning default when the configured effort is unsupported", () => {
+  const capabilities = mapCodexModelCapabilities(
+    {
+      additionalSpeedTiers: [],
+      defaultReasoningEffort: "low",
+      defaultServiceTier: null,
+      description: "Test model",
+      displayName: "GPT Test",
+      hidden: false,
+      id: "gpt-test",
+      isDefault: true,
+      model: "gpt-test",
+      serviceTiers: [],
+      supportedReasoningEfforts: [{ description: "Fast", reasoningEffort: "low" }],
+    },
+    "ultra",
+  );
+
+  assert.equal(capabilities.optionDescriptors?.[0]?.currentValue, "low");
+});
+
 it("marks the most preferred available model as default", () => {
   const models = applyPreferredCodexDefaultModel([
     { slug: "gpt-5.6-terra", name: "GPT-5.6-Terra", isCustom: false, capabilities: null },
