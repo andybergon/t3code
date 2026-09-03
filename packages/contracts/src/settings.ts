@@ -35,6 +35,10 @@ export const DiffLayout = Schema.Literals(["stacked", "split"]);
 export type DiffLayout = typeof DiffLayout.Type;
 export const DEFAULT_DIFF_LAYOUT: DiffLayout = "stacked";
 
+export const ExternalLinkOpenMode = Schema.Literals(["external", "integrated"]);
+export type ExternalLinkOpenMode = typeof ExternalLinkOpenMode.Type;
+export const DEFAULT_EXTERNAL_LINK_OPEN_MODE: ExternalLinkOpenMode = "external";
+
 export const SidebarProjectSortOrder = Schema.Literals(["updated_at", "created_at", "manual"]);
 export type SidebarProjectSortOrder = typeof SidebarProjectSortOrder.Type;
 export const DEFAULT_SIDEBAR_PROJECT_SORT_ORDER: SidebarProjectSortOrder = "updated_at";
@@ -249,6 +253,9 @@ export const ClientSettingsSchema = Schema.Struct({
   diffLayout: DiffLayout.pipe(Schema.withDecodingDefault(Effect.succeed(DEFAULT_DIFF_LAYOUT))),
   environmentIdentificationMode: EnvironmentIdentificationMode.pipe(
     Schema.withDecodingDefault(Effect.succeed(DEFAULT_ENVIRONMENT_IDENTIFICATION_MODE)),
+  ),
+  externalLinkOpenMode: ExternalLinkOpenMode.pipe(
+    Schema.withDecodingDefault(Effect.succeed(DEFAULT_EXTERNAL_LINK_OPEN_MODE)),
   ),
   glassOpacity: GlassOpacity.pipe(
     Schema.withDecodingDefault(Effect.succeed(DEFAULT_GLASS_OPACITY)),
@@ -1014,6 +1021,7 @@ export const ClientSettingsPatch = Schema.Struct({
   diffIgnoreWhitespace: Schema.optionalKey(Schema.Boolean),
   diffLayout: Schema.optionalKey(DiffLayout),
   environmentIdentificationMode: Schema.optionalKey(EnvironmentIdentificationMode),
+  externalLinkOpenMode: Schema.optionalKey(ExternalLinkOpenMode),
   glassOpacity: Schema.optionalKey(GlassOpacity),
   fontSizeInterface: Schema.optionalKey(InterfaceFontSize),
   fontSizePrompt: Schema.optionalKey(PromptFontSize),

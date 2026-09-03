@@ -100,6 +100,7 @@ import {
 } from "./preview/fileExplorerLabel";
 import {
   resolveExternalWebLinkHost,
+  shouldOpenExternalLinkInPreview,
   showExternalLinkContextMenu,
 } from "./chat/externalLinkContextMenu";
 import { hasSpecificPierreIconForFileName, syntheticFileNameForLanguageId } from "../pierre-icons";
@@ -2516,6 +2517,7 @@ function ChatMarkdown({
               rel={isSameDocumentLink ? undefined : "noopener noreferrer"}
               onClick={(event) => {
                 onClick?.(event);
+                if (event.defaultPrevented) return;
                 if (isSameDocumentLink && href) {
                   handleMarkdownFragmentClick(event, href);
                   return;
@@ -2537,9 +2539,49 @@ function ChatMarkdown({
                 }
                 // A link to a change request in a workspace project opens beside the
                 // conversation instead of in a browser: it is the thing being talked about, and
-                // the panel it opens offers the browser as one of its actions. Anything else is
-                // an ordinary link and keeps the `_blank` the shell already handles.
-                if (href) openChangeRequestLink(event, href);
+                // the panel it opens offers the browser as one of its actions. Other links honor
+                // the client-local destination preference, with `_blank` as the external path.
+                if (!href || openChangeRequestLink(event, href)) return;
+                if (
+                  !shouldOpenExternalLinkInPreview({
+                    href,
+                    mode: getClientSettings().externalLinkOpenMode,
+                    canOpenInPreview,
+                    event,
+                  })
+                ) {
+                  return;
+                }
+
+                event.preventDefault();
+                event.stopPropagation();
+                const openInSystemBrowser = () => {
+                  void readLocalApi()
+                    ?.shell.openExternal(href)
+                    .catch((cause) => {
+                      reportMarkdownActionFailure(
+                        { operation: "open-link-external", target: href },
+                        cause,
+                      );
+                    });
+                };
+                void openExternalLinkInPreview(href).then(
+                  (result) => {
+                    if (result._tag === "Success" || isAtomCommandInterrupted(result)) return;
+                    reportMarkdownActionFailure(
+                      { operation: "open-link-in-preview", target: href },
+                      result.cause,
+                    );
+                    openInSystemBrowser();
+                  },
+                  (cause) => {
+                    reportMarkdownActionFailure(
+                      { operation: "open-link-in-preview", target: href },
+                      cause,
+                    );
+                    openInSystemBrowser();
+                  },
+                );
               }}
               onContextMenu={(event) => {
                 if (!href || !faviconHost) return;

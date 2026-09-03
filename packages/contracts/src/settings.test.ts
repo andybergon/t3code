@@ -101,6 +101,19 @@ describe("ClientSettings quit confirmation", () => {
   });
 });
 
+describe("ClientSettings external link opening", () => {
+  it("defaults to the system browser and accepts either destination", () => {
+    expect(decodeClientSettings({}).externalLinkOpenMode).toBe("external");
+    expect(decodeClientSettingsPatch({ externalLinkOpenMode: "integrated" })).toEqual({
+      externalLinkOpenMode: "integrated",
+    });
+  });
+
+  it("rejects unsupported destinations", () => {
+    expect(() => decodeClientSettings({ externalLinkOpenMode: "new-tab" })).toThrow();
+  });
+});
+
 describe("ClientSettings browser recording frame rate", () => {
   it("defaults to 30 fps", () => {
     expect(decodeClientSettings({}).browserRecordingFrameRate).toBe(30);

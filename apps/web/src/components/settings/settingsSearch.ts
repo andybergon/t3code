@@ -179,6 +179,12 @@ export const SETTINGS_SEARCH_ITEMS = [
     searchTerms: ["timestamp clock locale system browser os 12 hour 24 hour"],
   },
   {
+    id: "open-web-links",
+    title: "Open web links",
+    to: "/settings/general",
+    searchTerms: ["link destination system integrated browser conversations"],
+  },
+  {
     id: "hide-whitespace-changes",
     title: "Hide whitespace changes",
     to: "/settings/general",
