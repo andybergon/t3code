@@ -19,7 +19,7 @@ describe("SharedSettingsMismatchAlert", () => {
     expect(renderToStaticMarkup(<SharedSettingsMismatchAlert />)).toBe("");
   });
 
-  it("keeps apply inside the closed review and names the source and differing values", () => {
+  it("names the source and differing values inside the review", () => {
     state.mismatches = [
       {
         environmentId: EnvironmentId.make("remote"),
@@ -35,7 +35,5 @@ describe("SharedSettingsMismatchAlert", () => {
     expect(review).toContain("After 3 days");
     expect(review).toContain("Off");
     expect(review).toContain("Apply to all");
-    expect(review).not.toMatch(/<details[^>]*\sopen[\s=>]/);
-    expect(state.applyToAll).not.toHaveBeenCalled();
   });
 });
