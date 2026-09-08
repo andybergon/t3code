@@ -170,6 +170,7 @@ import { useMediaQuery } from "../hooks/useMediaQuery";
 import { RIGHT_PANEL_INLINE_LAYOUT_MEDIA_QUERY } from "../rightPanelLayout";
 import {
   pullRequestSurface,
+  selectAdjacentRightPanelSurface,
   selectActiveRightPanel,
   selectActiveRightPanelSurface,
   selectThreadRightPanelState,
@@ -6145,6 +6146,18 @@ export default function ChatView(props: ChatViewProps) {
         return;
       }
 
+      if (command === "rightPanel.nextTab" || command === "rightPanel.previousTab") {
+        event.preventDefault();
+        event.stopPropagation();
+        const surface = selectAdjacentRightPanelSurface(
+          useRightPanelStore.getState().byThreadKey,
+          activeThreadRef,
+          command === "rightPanel.nextTab" ? "next" : "previous",
+        );
+        if (surface) activateRightPanelSurface(surface);
+        return;
+      }
+
       if (command === "rightPanel.toggleMaximized") {
         event.preventDefault();
         event.stopPropagation();
@@ -6254,6 +6267,7 @@ export default function ChatView(props: ChatViewProps) {
     activeProject,
     activeRightPanelSurface,
     activeProjectScripts,
+    activateRightPanelSurface,
     addTerminalSurface,
     activeThreadRef,
     activeThreadPinned,
