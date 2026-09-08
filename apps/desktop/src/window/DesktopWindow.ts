@@ -429,7 +429,7 @@ export const make = Effect.gen(function* () {
     const fallbackWindowFullscreen = persistedSettings.mainWindowFullscreen;
     const fallbackWindowMaximized = persistedSettings.mainWindowMaximized;
     const persistCurrentBounds = (): Fiber.Fiber<void, never> | undefined => {
-      if (!boundsPersistenceEnabled) {
+      if (!boundsPersistenceEnabled || fullscreenRestorePending) {
         return pendingBoundsPersistFiber;
       }
       const bounds = readPersistableBounds();
@@ -441,8 +441,7 @@ export const make = Effect.gen(function* () {
           .setMainWindowBounds(
             bounds,
             window.isMaximized(),
-            environment.platform === "darwin" &&
-              (fullscreenRestorePending || window.isFullScreen()),
+            environment.platform === "darwin" && window.isFullScreen(),
           )
           .pipe(
             Effect.asVoid,
@@ -456,6 +455,10 @@ export const make = Effect.gen(function* () {
       return pendingBoundsPersistFiber;
     };
     const scheduleBoundsPersist = () => {
+      // Native startup transitions do not replace the saved normal window bounds.
+      if (fullscreenRestorePending) {
+        return;
+      }
       if (!boundsPersistenceEnabled) {
         const currentBounds = readPersistableBounds();
         if (
