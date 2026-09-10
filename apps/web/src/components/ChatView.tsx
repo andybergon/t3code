@@ -6147,14 +6147,15 @@ export default function ChatView(props: ChatViewProps) {
       }
 
       if (command === "rightPanel.nextTab" || command === "rightPanel.previousTab") {
-        event.preventDefault();
-        event.stopPropagation();
         const surface = selectAdjacentRightPanelSurface(
           useRightPanelStore.getState().byThreadKey,
           activeThreadRef,
           command === "rightPanel.nextTab" ? "next" : "previous",
         );
-        if (surface) activateRightPanelSurface(surface);
+        if (!surface) return;
+        event.preventDefault();
+        event.stopPropagation();
+        activateRightPanelSurface(surface);
         return;
       }
 
