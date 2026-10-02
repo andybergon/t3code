@@ -429,6 +429,7 @@ export const make = Effect.gen(function* () {
     let boundsPersistFiber: Fiber.Fiber<void, never> | undefined;
     let pendingBoundsPersistFiber: Fiber.Fiber<void, never> | undefined;
     let fullscreenRestorePending = restoreFullscreen;
+    let quitWindowConcealed = false;
     let boundsPersistenceEnabled = persistedBounds === null || restoredPersistedBounds;
     const readPersistableBounds = (): DesktopAppSettings.DesktopWindowBounds | null => {
       if (window.isDestroyed()) {
@@ -455,7 +456,7 @@ export const make = Effect.gen(function* () {
         ? lastWindowMaximized
         : window.isMaximized();
     const persistCurrentBounds = (): Fiber.Fiber<void, never> | undefined => {
-      if (!boundsPersistenceEnabled || fullscreenRestorePending) {
+      if (!boundsPersistenceEnabled || fullscreenRestorePending || quitWindowConcealed) {
         return pendingBoundsPersistFiber;
       }
       const bounds = readPersistableBounds();
@@ -483,7 +484,7 @@ export const make = Effect.gen(function* () {
     };
     const scheduleBoundsPersist = () => {
       // Native startup transitions do not replace the saved normal window bounds.
-      if (fullscreenRestorePending) {
+      if (fullscreenRestorePending || quitWindowConcealed) {
         return;
       }
       lastWindowMaximized = readPersistableMaximized();
@@ -674,7 +675,13 @@ export const make = Effect.gen(function* () {
       },
       // Keep the transparent window focused until the physical shortcut is
       // released so its remaining repeats cannot reach the next app.
-      concealWindow: () => concealPendingQuitWindow(window),
+      concealWindow: () => {
+        // Preserve the visible window state before quit concealment leaves fullscreen.
+        clearBoundsPersist();
+        void persistCurrentBounds();
+        quitWindowConcealed = true;
+        concealPendingQuitWindow(window);
+      },
       quit: () => {
         void runPromise(electronApp.quit);
       },
